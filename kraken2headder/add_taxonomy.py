@@ -57,19 +57,33 @@ def add_taxonomy_header():
     with open(output + source_file_name, "r") as f:
         for rec in SeqIO.parse(f, "fasta"):
             seq = rec.seq
+            # U to T変換する場はback_transcribe()を実行する
+            seq = seq.back_transcribe()
             acc = re.split('_|\|', rec.id)
             try:
                 accession = acc[0].split('.')[0]
-                kraken_header = "kraken:taxid|" + taxid_map[accession] + "|"
-                new_id = kraken_header + rec.id
-                new_description = re.split('\|', rec.description)
+
+                # kraken_header = "kraken:taxid|" + taxid_map[accession] + "|"
+                # new_id = kraken_header + rec.id
+                # new_description = re.split('\|', rec.description)
                 # 書き込む
                 # Seq()の引数は文字列である必要がある。Seq objectをSeq()の引数にはできない
                 # new_rec = SeqRecord(Seq(seq), id=new_id, description=new_description[-1])
-                new_rec = SeqRecord(seq, id=new_id, description=new_description[-1])
+                # new_rec = SeqRecord(seq, id=new_id, description=new_description[-1])
+
+                # sequence id|kraken:taxidのみ残すケース
+                # kraken_header = accession + "|kraken:taxid|" + taxid_map[accession]
+                # kraken:taxidのみ残すケース
+                kraken_header = "kraken:taxid|" + taxid_map[accession]
+                new_description = ""
+                new_id = kraken_header
+                new_rec = SeqRecord(seq, id=new_id, description=new_description)
+
                 records.append(new_rec)
             except KeyError:
                 unfetched.append(acc[0])
+
+            break
 
     fasta_writer(records)
 
