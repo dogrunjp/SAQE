@@ -55,37 +55,62 @@ def add_taxonomy_header():
     unfetched = []
 
     with open(output + source_file_name, "r") as f:
+        # for dev NNN..が何件あるg
+        nn_count = 0
         for rec in SeqIO.parse(f, "fasta"):
             seq = rec.seq
             # U to T変換する場はback_transcribe()を実行する
             seq = seq.back_transcribe()
-            acc = re.split('_|\|', rec.id)
-            try:
-                accession = acc[0].split('.')[0]
+            # Todo: NNNNNNNNNNNNNNNN （より長いmultiple Nを含むレコードは排除するようにする）
+            # Todo: seq.find(NNN..)
+            if find_nnn(seq):
+                nn_count = nn_count + 1
+                print(acc = re.split('_|\|', rec.id))
+            else:
+                acc = re.split('_|\|', rec.id)
+                try:
+                    accession = acc[0].split('.')[0]
 
-                # kraken_header = "kraken:taxid|" + taxid_map[accession] + "|"
-                # new_id = kraken_header + rec.id
-                # new_description = re.split('\|', rec.description)
-                # 書き込む
-                # Seq()の引数は文字列である必要がある。Seq objectをSeq()の引数にはできない
-                # new_rec = SeqRecord(Seq(seq), id=new_id, description=new_description[-1])
-                # new_rec = SeqRecord(seq, id=new_id, description=new_description[-1])
+                    # kraken_header = "kraken:taxid|" + taxid_map[accession] + "|"
+                    # new_id = kraken_header + rec.id
+                    # new_description = re.split('\|', rec.description)
+                    # 書き込む
+                    # Seq()の引数は文字列である必要がある。Seq objectをSeq()の引数にはできない
+                    # new_rec = SeqRecord(Seq(seq), id=new_id, description=new_description[-1])
+                    # new_rec = SeqRecord(seq, id=new_id, description=new_description[-1])
 
-                # sequence id|kraken:taxidのみ残すケース
-                # kraken_header = accession + "|kraken:taxid|" + taxid_map[accession]
-                # kraken:taxidのみ残すケース
-                kraken_header = "kraken:taxid|" + taxid_map[accession]
-                new_description = ""
-                new_id = kraken_header
-                new_rec = SeqRecord(seq, id=new_id, description=new_description)
+                    # sequence id|kraken:taxidのみ残すケース
+                    # kraken_header = accession + "|kraken:taxid|" + taxid_map[accession]
+                    # kraken:taxidのみ残すケース
+                    taxid = taxid_map[accession]
+                    if taxid == 0:
+                        print(accession)
+                    else:
+                        kraken_header = "kraken:taxid|" + taxid
+                        new_description = ""
+                        new_id = kraken_header
+                        new_rec = SeqRecord(seq, id=new_id, description=new_description)
+                        records.append(new_rec)
+                except KeyError:
+                    unfetched.append(acc[0])
 
-                records.append(new_rec)
-            except KeyError:
-                unfetched.append(acc[0])
-
-            break
 
     fasta_writer(records)
+
+
+def find_nnn(seq) -> bool:
+    """
+    NNNの言って以上の連続した配列を含むレコードを排除する目的で
+    設定した値より長いNがあった場合 trueを返す
+    Nの１６連続以上のmultiple Nをは以上するよう設定する
+    :param seq:
+    :return:
+    """
+    ns = "NNNNNNNNNNNNNNNN"
+    if seq.find(ns) >= 0:
+        return True
+    else:
+        return False
 
 
 def fasta_writer(records: list):
